@@ -6,6 +6,7 @@ import './MovieApp.css';
 const MovieRecommendations = () => {
   const [movies, setMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('');
   const [trendingMovies, setTrendingMovies] = useState([]);
@@ -19,29 +20,25 @@ const MovieRecommendations = () => {
   const apiKey = '0fa2853e7c4d6c8f146aba861c5e4a06';
 
   useEffect(() => {
-    axios.get(`https://api.themoviedb.org/3/genre/movie/list`, {
-      params: { api_key: apiKey }
-    }).then(res => setGenres(res.data.genres));
+    axios.get(`https://api.themoviedb.org/3/genre/movie/list?api_key=${apiKey}`)
+      .then(res => setGenres(res.data.genres));
 
-    axios.get(`https://api.themoviedb.org/3/trending/movie/week`, {
-      params: { api_key: apiKey }
-    }).then(res => setTrendingMovies(res.data.results.slice(0, 4)));
+    axios.get(`https://api.themoviedb.org/3/trending/movie/week?api_key=${apiKey}`)
+      .then(res => setTrendingMovies(res.data.results.slice(0, 6)));
 
-    // **Here is the fix**: using /movie/now_playing for actual theater releases
-    axios.get(`https://api.themoviedb.org/3/movie/now_playing`, {
-      params: { api_key: apiKey, language: 'en-US', page: 1 }
-    }).then(res => setNewReleases(res.data.results.slice(0, 4)));
-  }, [apiKey]);
+    axios.get(`https://api.themoviedb.org/3/movie/now_playing?api_key=${apiKey}&language=en-US&page=1`)
+      .then(res => setNewReleases(res.data.results.slice(0, 6)));
+  }, []);
 
   useEffect(() => {
     axios.get(`https://api.themoviedb.org/3/discover/movie`, {
       params: {
         api_key: apiKey,
         sort_by: 'popularity.desc',
-        with_genres: selectedGenre || undefined
+        with_genres: selectedGenre || undefined,
       }
     }).then(res => setMovies(res.data.results.slice(0, 12)));
-  }, [apiKey, selectedGenre]);
+  }, [selectedGenre]);
 
   const handleSearchSubmit = async () => {
     if (!searchQuery.trim()) return;
@@ -50,9 +47,17 @@ const MovieRecommendations = () => {
     });
     setMovies(res.data.results);
     setActiveSection('search');
+    setSearchSuggestions([]);
   };
 
-  const handleKeyPress = e => { if (e.key === 'Enter') handleSearchSubmit(); };
+  const handleKeyPress = e => {
+    if (e.key === 'Enter') handleSearchSubmit();
+  };
+
+  const handleSuggestionClick = (title) => {
+    setSearchQuery(title);
+    handleSearchSubmit();
+  };
 
   const getPoster = path =>
     path
@@ -71,7 +76,7 @@ const MovieRecommendations = () => {
       <div className="movie-info">
         <h2>
           {movie.title}
-          <span className="rating">⭐ {movie.vote_average}</span>
+          <span className="rating">⭐ {movie.vote_average?.toFixed(1)}</span>
         </h2>
         <p>{movie.overview ? movie.overview.slice(0, 100) + '...' : 'No overview available.'}</p>
         <div className="movie-links">
@@ -82,9 +87,28 @@ const MovieRecommendations = () => {
     </div>
   );
 
+  const fetchSearchSuggestions = async (query) => {
+    if (!query.trim()) {
+      setSearchSuggestions([]);
+      return;
+    }
+    const res = await axios.get(`https://api.themoviedb.org/3/search/movie`, {
+      params: { api_key: apiKey, query }
+    });
+    setSearchSuggestions(res.data.results.slice(0, 5));
+  };
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      fetchSearchSuggestions(searchQuery);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [searchQuery]);
+
   return (
     <div className="container">
       <h1>MovieHouse 🎬</h1>
+
       <div className="search-bar">
         <input
           type="text"
@@ -97,7 +121,17 @@ const MovieRecommendations = () => {
         <button onClick={handleSearchSubmit}>
           <AiOutlineSearch size={22} />
         </button>
+        {searchSuggestions.length > 0 && (
+          <ul className="suggestions">
+            {searchSuggestions.map(movie => (
+              <li key={movie.id} onClick={() => handleSuggestionClick(movie.title)}>
+                {movie.title}
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
+
       <div className="filters">
         <select onChange={e => scrollToSection(e.target.value)}>
           <option value="all">All Movies</option>
@@ -106,7 +140,9 @@ const MovieRecommendations = () => {
         </select>
         <select value={selectedGenre} onChange={e => setSelectedGenre(e.target.value)}>
           <option value="">All Genres</option>
-          {genres.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          {genres.map(g => (
+            <option key={g.id} value={g.id}>{g.name}</option>
+          ))}
         </select>
       </div>
 
