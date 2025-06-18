@@ -43,7 +43,7 @@ h1 {
   background-color: #fca311;
   color: #000;
   border: none;
-  padding: 0.6rem 0.8rem;
+  padding: 0.36rem 0.8rem;
   border-radius: 8px;
   cursor: pointer;
   transition: background-color 0.3s;
@@ -52,6 +52,7 @@ h1 {
 .search-bar button:hover {
   background-color: #ffb347;
 }
+
 
 .filters {
   display: flex;

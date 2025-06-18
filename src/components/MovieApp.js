@@ -6,7 +6,6 @@ import './MovieApp.css';
 const MovieRecommendations = () => {
   const [movies, setMovies] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchSuggestions, setSearchSuggestions] = useState([]);
   const [genres, setGenres] = useState([]);
   const [selectedGenre, setSelectedGenre] = useState('');
   const [trendingMovies, setTrendingMovies] = useState([]);
@@ -47,16 +46,10 @@ const MovieRecommendations = () => {
     });
     setMovies(res.data.results);
     setActiveSection('search');
-    setSearchSuggestions([]);
   };
 
   const handleKeyPress = e => {
     if (e.key === 'Enter') handleSearchSubmit();
-  };
-
-  const handleSuggestionClick = (title) => {
-    setSearchQuery(title);
-    handleSearchSubmit();
   };
 
   const getPoster = path =>
@@ -87,23 +80,7 @@ const MovieRecommendations = () => {
     </div>
   );
 
-  const fetchSearchSuggestions = async (query) => {
-    if (!query.trim()) {
-      setSearchSuggestions([]);
-      return;
-    }
-    const res = await axios.get(`https://api.themoviedb.org/3/search/movie`, {
-      params: { api_key: apiKey, query }
-    });
-    setSearchSuggestions(res.data.results.slice(0, 5));
-  };
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      fetchSearchSuggestions(searchQuery);
-    }, 300);
-    return () => clearTimeout(timeout);
-  }, [searchQuery]);
+  
 
   return (
     <div className="container">
@@ -121,15 +98,7 @@ const MovieRecommendations = () => {
         <button onClick={handleSearchSubmit}>
           <AiOutlineSearch size={22} />
         </button>
-        {searchSuggestions.length > 0 && (
-          <ul className="suggestions">
-            {searchSuggestions.map(movie => (
-              <li key={movie.id} onClick={() => handleSuggestionClick(movie.title)}>
-                {movie.title}
-              </li>
-            ))}
-          </ul>
-        )}
+        
       </div>
 
       <div className="filters">
